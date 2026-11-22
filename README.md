@@ -2,7 +2,10 @@
 
 **Zero-dependency voice presence engine** — one file, any stack.
 
-A beautiful, audio-reactive particle orb for voice AI agents. Works everywhere: plain HTML, Webflow, Framer, WordPress, Vue, Svelte, React… just drop a `<script>` tag.
+A beautiful, audio-reactive particle orb for voice AI agents.  
+Works everywhere: plain HTML, Webflow, Framer, WordPress, Vue, Svelte, React… just drop a `<script>` tag.
+
+[Live Playground →](https://ppiiyo.github.io/AnyOrb) · [Download anyorb.js](https://cdn.jsdelivr.net/gh/ppiiyo/AnyOrb@main/anyorb.js)
 
 ## Quick start
 
@@ -27,16 +30,28 @@ orb.connectAnalyser(analyser);   // Web Audio AnalyserNode
 orb.destroy();                   // full cleanup
 ```
 
+## Install
+
+```bash
+npm i anyorb
+# or
+pnpm add anyorb
+```
+
+```js
+import "anyorb"; // registers <voice-orb>
+```
+
 ## States
 
-| State       | Behavior                                      |
-|-------------|-----------------------------------------------|
-| `idle`      | Soft breathing sphere                         |
-| `connecting`| Particles assemble from chaos                 |
-| `listening` | Radius + pulse driven by level                |
-| `thinking`  | Morphs into a torus, faster spin              |
-| `speaking`  | Wave surface driven by agent loudness         |
-| `error`     | Brief scatter + palette shift                 |
+| State        | Behavior                                      |
+|--------------|-----------------------------------------------|
+| `idle`       | Soft breathing sphere                         |
+| `connecting` | Particles assemble from chaos                 |
+| `listening`  | Radius + pulse driven by level                |
+| `thinking`   | Morphs into a torus, faster spin              |
+| `speaking`   | Wave surface driven by agent loudness         |
+| `error`      | Brief scatter + palette shift                 |
 
 ## Themes
 
@@ -45,8 +60,8 @@ orb.destroy();                   // full cleanup
 ## Features
 
 - **Zero runtime dependencies**
-- Web Component + class API
-- Transparent canvas, ResizeObserver
+- Web Component `<voice-orb>` + class API
+- Transparent canvas, `ResizeObserver`
 - DPR-aware, pauses when tab is hidden
 - `prefers-reduced-motion` support
 - Full cleanup via `destroy()`
@@ -54,7 +69,7 @@ orb.destroy();                   // full cleanup
 
 ## Playground
 
-Open [`anyorb.html`](./anyorb.html) in a browser for the full interactive demo:
+Open the [live demo](https://ppiiyo.github.io/AnyOrb) or open `index.html` locally:
 
 - Live microphone
 - Scripted conversation simulator
@@ -64,19 +79,19 @@ Open [`anyorb.html`](./anyorb.html) in a browser for the full interactive demo:
 
 ## Integration recipes
 
-The orb only needs a `0..1` level signal. Wire any stack in ~15 lines:
+The orb only needs a `0..1` level signal:
 
-- OpenAI Realtime (WebRTC)
-- LiveKit Agents
-- ElevenLabs
-- Vapi / any Web Audio source
+- [OpenAI Realtime](./examples/openai-realtime.md)
+- [LiveKit Agents](./examples/livekit.md)
+- [Basic embed](./examples/basic.html)
 
-See the “Embed & integrate” tab in the playground.
+## Enable GitHub Pages (one-time)
+
+1. Repo → **Settings** → **Pages**
+2. Source: **Deploy from a branch**
+3. Branch: `main` / **/** (root)
+4. Save → site at `https://ppiiyo.github.io/AnyOrb`
 
 ## License
 
 MIT
-
----
-
-Made for voice agents that need presence on any page — not just React apps.
