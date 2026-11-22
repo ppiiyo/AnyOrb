@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ANYORB — basic embed</title>
+  <style>
+    body { margin:0; background:#06070d; display:grid; place-items:center; min-height:100vh; font-family:system-ui; color:#e9edff; }
+    voice-orb { width:260px; height:260px; }
+    .row { display:flex; gap:10px; margin-top:24px; flex-wrap:wrap; justify-content:center; }
+    button { background:#1a2035; border:1px solid #3a4a7a; color:#e9edff; padding:8px 14px; border-radius:10px; cursor:pointer; }
+    button:hover { border-color:#59d8ff; }
+  </style>
+</head>
+<body>
+  <voice-orb id="orb" state="idle" theme="glacier"></voice-orb>
+  <div class="row">
+    <button data-s="idle">Idle</button>
+    <button data-s="connecting">Connect</button>
+    <button data-s="listening">Listen</button>
+    <button data-s="thinking">Think</button>
+    <button data-s="speaking">Speak</button>
+    <button data-s="error">Error</button>
+  </div>
+  <script src="../anyorb.js"></script>
+  <script>
+    const el = document.getElementById("orb");
+    document.querySelectorAll("[data-s]").forEach(b => {
+      b.onclick = () => el.setAttribute("state", b.dataset.s);
+    });
+    // fake speaking level
+    setInterval(() => {
+      if (el.getAttribute("state") === "speaking" && el.orb) {
+        el.orb.setLevel(0.3 + Math.random() * 0.6);
+      }
+    }, 80);
+  </script>
+</body>
+</html>
