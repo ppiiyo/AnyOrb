@@ -1,0 +1,42 @@
+{
+  "name": "anyorb",
+  "version": "0.1.0",
+  "description": "Zero-dependency voice presence engine — one file, any stack. Audio-reactive particle orb for voice AI agents.",
+  "main": "anyorb.js",
+  "browser": "anyorb.js",
+  "unpkg": "anyorb.js",
+  "jsdelivr": "anyorb.js",
+  "files": [
+    "anyorb.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "demo": "echo 'Open index.html or anyorb.html in a browser'"
+  },
+  "keywords": [
+    "voice",
+    "orb",
+    "ai-agent",
+    "voice-agent",
+    "web-component",
+    "canvas",
+    "particles",
+    "audio-reactive",
+    "zero-dependency",
+    "realtime",
+    "livekit",
+    "openai"
+  ],
+  "author": "ppiiyo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ppiiyo/AnyOrb.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ppiiyo/AnyOrb/issues"
+  },
+  "homepage": "https://ppiiyo.github.io/AnyOrb",
+  "type": "module"
+}
