@@ -26,9 +26,61 @@ function hueShift(rgb,deg){
 const DEFAULTS = {
   particles:1600, scale:1, speed:.7, turbulence:.18, tilt:18, zoom:1, spin:.5,
   glow:.7, trails:.25, psize:1, gravity:.5, grav:true, links:true, tint:true,
-  animate:true, quality:"balanced", theme:"glacier", accent:null, state:"idle", interactive:true
+  animate:true, quality:"balanced", theme:"glacier", accent:null, form:null, state:"idle", interactive:true
 };
 const DPR = {eco:1, balanced:1.5, sharp:2};
+
+// Sample 3D points on symbolic shapes (normalized ~ unit scale)
+function sampleShape(kind, u, j, i, t) {
+  if (kind === "question") {
+    const useDot = u > 0.82;
+    if (useDot) {
+      const a = j * Math.PI * 2, r = 0.22 + j * 0.06;
+      return [Math.cos(a) * r, -1.55 + Math.sin(a) * r * 0.5, Math.sin(a) * r * 0.3];
+    }
+    const ang = -0.2 + (u / 0.82) * (Math.PI * 1.35);
+    const R = 0.95;
+    const cx = 0.15, cy = 0.35;
+    let x = cx + Math.cos(ang) * R;
+    let y = cy + Math.sin(ang) * R;
+    if (u > 0.55 && u < 0.82) {
+      const k = (u - 0.55) / 0.27;
+      x = 0.2;
+      y = -0.15 - k * 0.95;
+    }
+    const z = (j - 0.5) * 0.35;
+    return [x, y, z];
+  }
+  if (kind === "x" || kind === "error-x") {
+    const arm = u < 0.5;
+    const k = arm ? u * 2 : (u - 0.5) * 2;
+    const s = (k - 0.5) * 2.4;
+    const spread = (j - 0.5) * 0.28;
+    if (arm) return [s + spread * 0.3, s + spread, (j - 0.5) * 0.2];
+    return [s + spread * 0.3, -s + spread, (j - 0.5) * 0.2];
+  }
+  if (kind === "face" || kind === "angry") {
+    const part = u;
+    if (part < 0.55) {
+      const yy = 1 - 2 * (part / 0.55);
+      const rr = Math.sqrt(Math.max(0, 1 - yy * yy));
+      const th = i * 2.3999632297;
+      return [Math.cos(th) * rr * 1.7, yy * 1.7, Math.sin(th) * rr * 1.7];
+    }
+    if (part < 0.72) {
+      const k = (part - 0.55) / 0.17;
+      return [-0.55 + k * 0.45, 0.45 - k * 0.2, 1.15 + (j - 0.5) * 0.15];
+    }
+    if (part < 0.89) {
+      const k = (part - 0.72) / 0.17;
+      return [0.55 - k * 0.45, 0.45 - k * 0.2, 1.15 + (j - 0.5) * 0.15];
+    }
+    const k = (part - 0.89) / 0.11;
+    const ang = Math.PI * 0.2 + k * Math.PI * 0.6;
+    return [Math.cos(ang) * 0.7, -0.55 - Math.sin(ang) * 0.35, 1.1];
+  }
+  return null;
+}
 
 class AnyOrb {
   constructor(host, opts={}){
@@ -152,7 +204,7 @@ class AnyOrb {
   disconnectAnalyser(){ this.analyser=null; this._td=null; }
   pulse(x,y){ this.ripples.push({x,y,age:0}); if(this.ripples.length>8)this.ripples.shift(); this._dirty=true; }
   set(key,val){
-    if(!(key in DEFAULTS)&&key!=="accent") return;
+    if(!(key in DEFAULTS)&&key!=="accent"&&key!=="form") return;
     this.o[key]=val;
     if(key==="particles") this._rebuild();
     else if(key==="quality") this._resize();
@@ -165,6 +217,21 @@ class AnyOrb {
   _targetPos(p,i,lvl){
     const s=this.state, t=this.time;
     let x,y,z;
+    const form = this.o.form || (s==="error" ? "face" : null);
+    if(form && form!=="sphere"){
+      const pt = sampleShape(form, p.u, p.j, i, t);
+      if(pt){
+        x=pt[0]; y=pt[1]; z=pt[2];
+        const wiggle = 0.04 + (s==="error" ? 0.06 : 0.02);
+        x+=Math.sin(t*2.1+p.j*20)*wiggle;
+        y+=Math.cos(t*1.7+p.v*17)*wiggle;
+        if(this.o.turbulence>0){
+          const tb=this.o.turbulence*.12;
+          x+=Math.sin(t*1.7+p.j*31)*tb; y+=Math.cos(t*1.3+p.v*29)*tb; z+=Math.sin(t*2.1+p.w*37)*tb;
+        }
+        return [x,y,z];
+      }
+    }
     if(s==="thinking"){
       const a=p.v*TAU, b=p.w*TAU;
       const R=1.55+.15*Math.cos(a*3+t*.6), tube=.55*Math.sqrt(p.w);
