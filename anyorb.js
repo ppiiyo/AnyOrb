@@ -1,6 +1,6 @@
 /* ANYORB v0.1 — voice presence engine. Zero dependencies. MIT.
-   Usage: <script src="anyorb.js"></script> then <voice-orb state="idle" theme="glacier"></voice-orb>
-   or: new AnyOrb(element, { theme:"nova", particles:1600 }) */
+   particleMode: "dot" | "emoji" | "sprite"  sprite: emoji char e.g. "🐱"
+   form: null | "question" | "face" | "x" (opt-in shapes) */
 (() => {
 "use strict";
 const TAU = Math.PI * 2;
@@ -26,30 +26,22 @@ function hueShift(rgb,deg){
 const DEFAULTS = {
   particles:1600, scale:1, speed:.7, turbulence:.18, tilt:18, zoom:1, spin:.5,
   glow:.7, trails:.25, psize:1, gravity:.5, grav:true, links:true, tint:true,
-  animate:true, quality:"balanced", theme:"glacier", accent:null, form:null, state:"idle", interactive:true
+  animate:true, quality:"balanced", theme:"glacier", accent:null, form:null,
+  particleMode:"dot", sprite:"🐱", state:"idle", interactive:true
 };
 const DPR = {eco:1, balanced:1.5, sharp:2};
 
-// Sample 3D points on symbolic shapes (normalized ~ unit scale)
 function sampleShape(kind, u, j, i, t) {
   if (kind === "question") {
-    const useDot = u > 0.82;
-    if (useDot) {
+    if (u > 0.82) {
       const a = j * Math.PI * 2, r = 0.22 + j * 0.06;
       return [Math.cos(a) * r, -1.55 + Math.sin(a) * r * 0.5, Math.sin(a) * r * 0.3];
     }
     const ang = -0.2 + (u / 0.82) * (Math.PI * 1.35);
-    const R = 0.95;
-    const cx = 0.15, cy = 0.35;
-    let x = cx + Math.cos(ang) * R;
-    let y = cy + Math.sin(ang) * R;
-    if (u > 0.55 && u < 0.82) {
-      const k = (u - 0.55) / 0.27;
-      x = 0.2;
-      y = -0.15 - k * 0.95;
-    }
-    const z = (j - 0.5) * 0.35;
-    return [x, y, z];
+    let x = 0.15 + Math.cos(ang) * 0.95;
+    let y = 0.35 + Math.sin(ang) * 0.95;
+    if (u > 0.55 && u < 0.82) { const k = (u - 0.55) / 0.27; x = 0.2; y = -0.15 - k * 0.95; }
+    return [x, y, (j - 0.5) * 0.35];
   }
   if (kind === "x" || kind === "error-x") {
     const arm = u < 0.5;
@@ -60,22 +52,15 @@ function sampleShape(kind, u, j, i, t) {
     return [s + spread * 0.3, -s + spread, (j - 0.5) * 0.2];
   }
   if (kind === "face" || kind === "angry") {
-    const part = u;
-    if (part < 0.55) {
-      const yy = 1 - 2 * (part / 0.55);
+    if (u < 0.55) {
+      const yy = 1 - 2 * (u / 0.55);
       const rr = Math.sqrt(Math.max(0, 1 - yy * yy));
       const th = i * 2.3999632297;
       return [Math.cos(th) * rr * 1.7, yy * 1.7, Math.sin(th) * rr * 1.7];
     }
-    if (part < 0.72) {
-      const k = (part - 0.55) / 0.17;
-      return [-0.55 + k * 0.45, 0.45 - k * 0.2, 1.15 + (j - 0.5) * 0.15];
-    }
-    if (part < 0.89) {
-      const k = (part - 0.72) / 0.17;
-      return [0.55 - k * 0.45, 0.45 - k * 0.2, 1.15 + (j - 0.5) * 0.15];
-    }
-    const k = (part - 0.89) / 0.11;
+    if (u < 0.72) { const k = (u - 0.55) / 0.17; return [-0.55 + k * 0.45, 0.45 - k * 0.2, 1.15]; }
+    if (u < 0.89) { const k = (u - 0.72) / 0.17; return [0.55 - k * 0.45, 0.45 - k * 0.2, 1.15]; }
+    const k = (u - 0.89) / 0.11;
     const ang = Math.PI * 0.2 + k * Math.PI * 0.6;
     return [Math.cos(ang) * 0.7, -0.55 - Math.sin(ang) * 0.35, 1.1];
   }
@@ -98,8 +83,9 @@ class AnyOrb {
     this.ripples = []; this.analyser = null; this._td = null;
     this.pointer = {x:0,y:0,active:false,down:false};
     this._drag = null; this.fps = 60; this._seed = Math.random()*1000;
+    this._sprite = null; this._spriteKey = "";
     this._onFrame = typeof opts.onFrame==="function"?opts.onFrame:null;
-    this._rebuild(); this._recolor();
+    this._rebuild(); this._ensureSprite(); this._recolor();
     this._resize = this._resize.bind(this); this._loop = this._loop.bind(this);
     this._ro = typeof ResizeObserver!=="undefined" ? new ResizeObserver(this._resize) : null;
     if(this._ro) this._ro.observe(host); else window.addEventListener("resize",this._resize);
@@ -118,6 +104,23 @@ class AnyOrb {
       this._order.push(i);
     }
     this._dirty = true;
+  }
+  _ensureSprite(){
+    const mode=this.o.particleMode||"dot";
+    if(mode!=="sprite"&&mode!=="emoji"){ this._sprite=null; return; }
+    const key=(this.o.sprite||"🐱")+"|"+(this.o.psize||1);
+    if(this._spriteKey===key&&this._sprite) return;
+    this._spriteKey=key;
+    const size=64;
+    const c=document.createElement("canvas");
+    c.width=size; c.height=size;
+    const x=c.getContext("2d");
+    x.clearRect(0,0,size,size);
+    const sym=this.o.sprite||"🐱";
+    x.font=`${Math.floor(size*0.78)}px Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif`;
+    x.textAlign="center"; x.textBaseline="middle";
+    x.fillText(sym, size/2, size/2+size*0.04);
+    this._sprite=c;
   }
   _scatter(r){ for(const p of this.particles){ p.x=(Math.random()-.5)*2*r; p.y=(Math.random()-.5)*2*r; p.z=(Math.random()-.5)*2*r; } }
   _recolor(){
@@ -147,45 +150,12 @@ class AnyOrb {
     const on=(el,ev,fn,opt)=>{el.addEventListener(ev,fn,opt);this._ev.push([el,ev,fn,opt]);};
     if(this.o.interactive){
       const c=this.canvas;
-      on(c,"pointerdown",e=>{
-        c.setPointerCapture(e.pointerId);
-        this.pointer.down=true; this.pointer.active=true;
-        this.pointer.x=e.clientX; this.pointer.y=e.clientY;
-        this._drag={x:e.clientX,y:e.clientY,t:performance.now(),moved:0};
-        this._dirty=true;
-      });
-      on(c,"pointermove",e=>{
-        this.pointer.x=e.clientX; this.pointer.y=e.clientY; this.pointer.active=true;
-        if(this._drag&&this.pointer.down){
-          const dx=e.clientX-this._drag.x, dy=e.clientY-this._drag.y;
-          this._drag.moved+=Math.abs(dx)+Math.abs(dy);
-          this.velY=dx*.012; this.rotY+=dx*.006;
-          this.o.tilt=Math.max(-75,Math.min(75,this.o.tilt+dy*.25));
-          this.rotX=this.o.tilt*Math.PI/180;
-          this._drag.x=e.clientX; this._drag.y=e.clientY;
-          this._emit("paramchange",{key:"tilt",value:this.o.tilt});
-        }
-        this._dirty=true;
-      });
-      const up=e=>{
-        if(this._drag&&this._drag.moved<7&&performance.now()-this._drag.t<350){
-          const r=c.getBoundingClientRect();
-          this.pulse(e.clientX-r.left,e.clientY-r.top);
-          this._emit("pulse",{x:e.clientX-r.left,y:e.clientY-r.top});
-        }
-        this.pointer.down=false; this._drag=null;
-        if(e.pointerType!=="mouse") this.pointer.active=false;
-        this._dirty=true;
-      };
-      on(c,"pointerup",up);
-      on(c,"pointercancel",()=>{this.pointer.down=false;this.pointer.active=false;this._drag=null;});
-      on(c,"pointerleave",()=>{if(!this.pointer.down)this.pointer.active=false;this._dirty=true;});
-      on(c,"wheel",e=>{
-        e.preventDefault();
-        this.o.zoom=Math.max(.5,Math.min(2,this.o.zoom*Math.exp(-e.deltaY*.0012)));
-        this._emit("paramchange",{key:"zoom",value:this.o.zoom});
-        this._dirty=true;
-      },{passive:false});
+      on(c,"pointerdown",e=>{c.setPointerCapture(e.pointerId);this.pointer.down=true;this.pointer.active=true;this.pointer.x=e.clientX;this.pointer.y=e.clientY;this._drag={x:e.clientX,y:e.clientY,t:performance.now(),moved:0};this._dirty=true;});
+      on(c,"pointermove",e=>{this.pointer.x=e.clientX;this.pointer.y=e.clientY;this.pointer.active=true;if(this._drag&&this.pointer.down){const dx=e.clientX-this._drag.x,dy=e.clientY-this._drag.y;this._drag.moved+=Math.abs(dx)+Math.abs(dy);this.velY=dx*.012;this.rotY+=dx*.006;this.o.tilt=Math.max(-75,Math.min(75,this.o.tilt+dy*.25));this.rotX=this.o.tilt*Math.PI/180;this._drag.x=e.clientX;this._drag.y=e.clientY;}this._dirty=true;});
+      const up=e=>{if(this._drag&&this._drag.moved<7&&performance.now()-this._drag.t<350){const r=c.getBoundingClientRect();this.pulse(e.clientX-r.left,e.clientY-r.top);}this.pointer.down=false;this._drag=null;if(e.pointerType!=="mouse")this.pointer.active=false;this._dirty=true;};
+      on(c,"pointerup",up);on(c,"pointercancel",()=>{this.pointer.down=false;this.pointer.active=false;this._drag=null;});
+      on(c,"pointerleave",()=>{if(!this.pointer.down)this.pointer.active=false;});
+      on(c,"wheel",e=>{e.preventDefault();this.o.zoom=Math.max(.5,Math.min(2,this.o.zoom*Math.exp(-e.deltaY*.0012)));this._dirty=true;},{passive:false});
     }
     on(document,"visibilitychange",()=>{this._last=0;this._dirty=true;});
   }
@@ -204,12 +174,13 @@ class AnyOrb {
   disconnectAnalyser(){ this.analyser=null; this._td=null; }
   pulse(x,y){ this.ripples.push({x,y,age:0}); if(this.ripples.length>8)this.ripples.shift(); this._dirty=true; }
   set(key,val){
-    if(!(key in DEFAULTS)&&key!=="accent"&&key!=="form") return;
+    if(!(key in DEFAULTS)&&key!=="accent"&&key!=="form"&&key!=="particleMode"&&key!=="sprite") return;
     this.o[key]=val;
     if(key==="particles") this._rebuild();
     else if(key==="quality") this._resize();
     else if(key==="theme"||key==="accent"||key==="tint") this._recolor();
     else if(key==="tilt") this.rotX=val*Math.PI/180;
+    else if(key==="particleMode"||key==="sprite"||key==="psize") this._ensureSprite();
     this._dirty=true;
     this._emit("paramchange",{key,value:val});
   }
@@ -217,18 +188,13 @@ class AnyOrb {
   _targetPos(p,i,lvl){
     const s=this.state, t=this.time;
     let x,y,z;
-    const form = this.o.form || (s==="error" ? "face" : null);
+    const form = this.o.form || null;
     if(form && form!=="sphere"){
       const pt = sampleShape(form, p.u, p.j, i, t);
       if(pt){
         x=pt[0]; y=pt[1]; z=pt[2];
-        const wiggle = 0.04 + (s==="error" ? 0.06 : 0.02);
-        x+=Math.sin(t*2.1+p.j*20)*wiggle;
-        y+=Math.cos(t*1.7+p.v*17)*wiggle;
-        if(this.o.turbulence>0){
-          const tb=this.o.turbulence*.12;
-          x+=Math.sin(t*1.7+p.j*31)*tb; y+=Math.cos(t*1.3+p.v*29)*tb; z+=Math.sin(t*2.1+p.w*37)*tb;
-        }
+        const wiggle = 0.04;
+        x+=Math.sin(t*2.1+p.j*20)*wiggle; y+=Math.cos(t*1.7+p.v*17)*wiggle;
         return [x,y,z];
       }
     }
@@ -290,10 +256,17 @@ class AnyOrb {
     ctx.globalCompositeOperation="lighter";
     const eco=o.quality==="eco", glowK=.5+o.glow*.65, sizeK=o.psize*Math.min(w,h)/420;
     const fade=this.state==="connecting"?Math.min(1,this.stateTime/1.1):1;
+    const useSprite=!!this._sprite && (o.particleMode==="sprite"||o.particleMode==="emoji");
     for(let n=0;n<N;n++){
       const p=this.particles[this._order[n]];
       const alpha=Math.min(.92,(.16+p.j*.5)*p.pz*glowK)*fade;
       const r=Math.max(.25,(0.5+p.j*1.3)*p.pz*sizeK);
+      if(useSprite){
+        const sz=Math.max(4, r*5.5);
+        ctx.globalAlpha=alpha;
+        ctx.drawImage(this._sprite, p.sx-sz/2, p.sy-sz/2, sz, sz);
+        continue;
+      }
       const col=p.j>.8?this._bright:p.j>.34?this._coreS:this._secondS;
       if(!eco&&p.j>.96){
         ctx.globalAlpha=alpha*o.glow*.1; ctx.fillStyle=this._coreS;
@@ -304,7 +277,7 @@ class AnyOrb {
       ctx.globalAlpha=alpha; ctx.fillStyle=col;
       ctx.beginPath(); ctx.arc(p.sx,p.sy,r,0,TAU); ctx.fill();
     }
-    if(o.links&&!eco){
+    if(o.links&&!eco&&!useSprite){
       ctx.lineWidth=.5; ctx.strokeStyle=this._coreS; ctx.globalAlpha=.08*glowK*fade;
       for(let i=0;i<N-3;i+=31){
         const p=this.particles[i],q=this.particles[i+3];
@@ -349,7 +322,7 @@ class AnyOrb {
     if(this._ro)this._ro.disconnect(); else window.removeEventListener("resize",this._resize);
     for(const [el,ev,fn,opt] of this._ev) el.removeEventListener(ev,fn,opt);
     this._ev.length=0; this.disconnectAnalyser(); this.ripples.length=0;
-    this.canvas.remove(); this._onFrame=null;
+    this.canvas.remove(); this._onFrame=null; this._sprite=null;
   }
 }
 AnyOrb.DEFAULTS=DEFAULTS; AnyOrb.STATES=STATES; AnyOrb.THEMES=THEMES;
