@@ -286,7 +286,9 @@ class AnyOrb {
   }
 }
 AnyOrb.DEFAULTS=DEFAULTS; AnyOrb.STATES=STATES; AnyOrb.THEMES=THEMES;
-window.AnyOrb=AnyOrb;
+if(typeof window!=="undefined") window.AnyOrb=AnyOrb;
+if(typeof module!=="undefined"&&module.exports) module.exports=AnyOrb;
+try{ if(typeof exports!=="undefined") exports.AnyOrb=AnyOrb; }catch(e){}
 
 if(typeof customElements!=="undefined"&&!customElements.get("voice-orb")){
   class VoiceOrbElement extends HTMLElement{
