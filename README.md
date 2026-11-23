@@ -5,12 +5,16 @@
 Audio-reactive particle orb for voice AI agents.  
 Works where React components can’t: **Webflow, Framer, WordPress, Vue, Svelte, plain HTML**.
 
-[Live Playground](https://ppiiyo.github.io/AnyOrb) · [anyorb.js (CDN)](https://cdn.jsdelivr.net/gh/ppiiyo/AnyOrb@main/anyorb.js) · [npm](https://www.npmjs.com/package/anyorb)
+[Live Playground](https://ppiiyo.github.io/AnyOrb) · [anyorb.js (CDN)](https://cdn.jsdelivr.net/gh/ppiiyo/AnyOrb@main/anyorb.js)
 
 ```html
 <script src="https://cdn.jsdelivr.net/gh/ppiiyo/AnyOrb@main/anyorb.js"></script>
 <voice-orb state="idle" theme="glacier" style="width:240px;height:240px"></voice-orb>
 ```
+
+<!-- Demo GIF: add media/anyorb-demo.gif to repo, then uncomment:
+![ANYORB states](./media/anyorb-demo.gif)
+-->
 
 ---
 
@@ -38,13 +42,10 @@ ANYORB is a **native Web Component + ~15 KB canvas engine**. No build step. No f
 
 ```bash
 npm i anyorb
-# or: pnpm add anyorb / yarn add anyorb
 ```
 
 ```js
 import "anyorb"; // registers <voice-orb>
-// or
-import { AnyOrb } from "anyorb";
 ```
 
 ---
@@ -58,27 +59,17 @@ const orb = new AnyOrb(document.querySelector("#host"), {
   state: "idle",
 });
 
-orb.setState("listening");   // idle | connecting | listening | thinking | speaking | error
-orb.setLevel(0.65);          // 0..1 loudness (attack/release smoothed)
-orb.connectAnalyser(analyser); // Web Audio AnalyserNode
-orb.set("theme", "ember");
-orb.destroy();               // full cleanup (no leaks)
+orb.setState("listening");
+orb.setLevel(0.65);
+orb.connectAnalyser(analyser);
+orb.destroy();
 ```
 
 ### Web Component
 
 ```html
-<voice-orb
-  state="speaking"
-  theme="glacier"
-  particles="2000"
-  style="width:220px;height:220px">
-</voice-orb>
+<voice-orb state="speaking" theme="glacier" style="width:220px;height:220px"></voice-orb>
 ```
-
-Attributes: `state`, `theme`, `particles`, `accent`.
-
-Events: `anyorb:statechange` (detail: `{ state }`).
 
 ---
 
@@ -93,21 +84,17 @@ Events: `anyorb:statechange` (detail: `{ state }`).
 | `speaking` | Wave surface from agent loudness |
 | `error` | Brief scatter + palette shift |
 
-## Themes
-
-`glacier` · `nova` · `acid` · `ember` · `rose` · or any `accent` hex.
+Themes: `glacier` · `nova` · `acid` · `ember` · `rose`
 
 ---
 
 ## Integration recipes
 
-One pattern everywhere: **remote audio → `AnalyserNode` → `orb.connectAnalyser()`** (or `setLevel`).
-
 | Provider | Guide |
 |----------|--------|
-| OpenAI Realtime (WebRTC) | [examples/openai-realtime.md](./examples/openai-realtime.md) |
+| OpenAI Realtime | [examples/openai-realtime.md](./examples/openai-realtime.md) |
 | LiveKit Agents | [examples/livekit.md](./examples/livekit.md) |
-| ElevenLabs Conversational | [examples/elevenlabs.md](./examples/elevenlabs.md) |
+| ElevenLabs | [examples/elevenlabs.md](./examples/elevenlabs.md) |
 | Vapi | [examples/vapi.md](./examples/vapi.md) |
 | Bare embed | [examples/basic.html](./examples/basic.html) |
 
@@ -115,32 +102,13 @@ One pattern everywhere: **remote audio → `AnalyserNode` → `orb.connectAnalys
 
 ## Features
 
-- **Zero runtime dependencies**
-- Web Component + class API
-- Transparent canvas, `ResizeObserver`, DPR-aware
-- Pauses when tab hidden; respects `prefers-reduced-motion`
-- `destroy()` — safe mount/unmount cycles
-- ~15 KB source (MIT)
-
----
+- Zero runtime dependencies · Web Component + class API
+- Transparent canvas, DPR-aware, `prefers-reduced-motion`
+- `destroy()` — no leaks · ~15 KB · MIT
 
 ## Playground
 
-Open [ppiiyo.github.io/AnyOrb](https://ppiiyo.github.io/AnyOrb):
-
-- Scripted conversation simulator  
-- Live level meter  
-- Settings drawer (particles, glow, trails, quality…)  
-- Theme switcher · Export PNG · Copy embed snippet  
-
----
-
-## GitHub Pages
-
-Repo → **Settings → Pages** → Source: **Deploy from a branch** → `main` / root.  
-Site: `https://ppiiyo.github.io/AnyOrb`
-
----
+[ppiiyo.github.io/AnyOrb](https://ppiiyo.github.io/AnyOrb) — conversation simulator, settings, themes, export PNG.
 
 ## License
 
