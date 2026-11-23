@@ -1,38 +1,50 @@
-# LiveKit Agents + ANYORB
+# LiveKit Agents → ANYORB
 
 ```html
 <script src="https://cdn.jsdelivr.net/gh/ppiiyo/AnyOrb@main/anyorb.js"></script>
-<script type="module">
-import { Room, RoomEvent } from "https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.esm.mjs";
+<div id="orb" style="width:240px;height:240px"></div>
+```
 
-const orb = new AnyOrb(document.getElementById("host"), {
+```js
+import { Room, RoomEvent, Track } from "livekit-client";
+
+const orb = new AnyOrb(document.getElementById("orb"), {
+  state: "connecting",
   theme: "nova",
-  particles: 1400,
-  state: "connecting"
 });
 
 const room = new Room();
 await room.connect(wsUrl, token);
+orb.setState("idle");
 
-room.on(RoomEvent.TrackSubscribed, (track) => {
-  if (track.kind !== "audio") return;
-  const el = track.attach();
-  el.style.display = "none";
-  document.body.appendChild(el);
+room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+  if (track.kind !== Track.Kind.Audio) return;
+  const el = track.attach(); // HTMLAudioElement
+  el.play().catch(() => {});
 
   const ctx = new AudioContext();
-  const src = ctx.createMediaStreamSource(el.srcObject);
+  const src = ctx.createMediaElementSource(el);
   const analyser = ctx.createAnalyser();
-  analyser.fftSize = 512;
+  analyser.fftSize = 256;
   src.connect(analyser);
+  // src.connect(ctx.destination); // if not using element playback only
+
   orb.connectAnalyser(analyser);
+  orb.setState("speaking"); // agent track
 });
 
-room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
-  const agentSpeaking = speakers.some(s => s.identity.startsWith("agent"));
-  orb.setState(agentSpeaking ? "speaking" : "listening");
-});
+// Map agent state from your data channel / attributes if available:
+// orb.setState("listening" | "thinking" | "speaking" | "idle")
+```
 
-room.on(RoomEvent.Disconnected, () => orb.setState("idle"));
-</script>
+User mic (listening pulse):
+
+```js
+const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+const ctx = new AudioContext();
+const src = ctx.createMediaStreamSource(stream);
+const analyser = ctx.createAnalyser();
+src.connect(analyser);
+orb.connectAnalyser(analyser);
+orb.setState("listening");
 ```
