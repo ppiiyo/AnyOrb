@@ -1,38 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ANYORB — basic embed</title>
   <style>
-    body { margin:0; background:#06070d; display:grid; place-items:center; min-height:100vh; font-family:system-ui; color:#e9edff; }
-    voice-orb { width:260px; height:260px; }
-    .row { display:flex; gap:10px; margin-top:24px; flex-wrap:wrap; justify-content:center; }
-    button { background:#1a2035; border:1px solid #3a4a7a; color:#e9edff; padding:8px 14px; border-radius:10px; cursor:pointer; }
-    button:hover { border-color:#59d8ff; }
+    html, body { height: 100%; margin: 0; background: #02040a; display: grid; place-items: center; }
+    voice-orb { width: min(280px, 70vw); height: min(280px, 70vw); }
   </style>
 </head>
 <body>
-  <voice-orb id="orb" state="idle" theme="glacier"></voice-orb>
-  <div class="row">
-    <button data-s="idle">Idle</button>
-    <button data-s="connecting">Connect</button>
-    <button data-s="listening">Listen</button>
-    <button data-s="thinking">Think</button>
-    <button data-s="speaking">Speak</button>
-    <button data-s="error">Error</button>
-  </div>
+  <!-- CDN or relative ../anyorb.js when served from repo -->
   <script src="../anyorb.js"></script>
+  <voice-orb state="idle" theme="glacier"></voice-orb>
   <script>
-    const el = document.getElementById("orb");
-    document.querySelectorAll("[data-s]").forEach(b => {
-      b.onclick = () => el.setAttribute("state", b.dataset.s);
-    });
-    // fake speaking level
+    const el = document.querySelector("voice-orb");
+    // Demo cycle
+    const seq = ["connecting", "listening", "thinking", "speaking", "idle"];
+    let i = 0;
     setInterval(() => {
-      if (el.getAttribute("state") === "speaking" && el.orb) {
-        el.orb.setLevel(0.3 + Math.random() * 0.6);
-      }
-    }, 80);
+      el.setAttribute("state", seq[i++ % seq.length]);
+    }, 2200);
   </script>
 </body>
 </html>
