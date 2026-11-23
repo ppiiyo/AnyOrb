@@ -3,274 +3,122 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="ANYORB — zero-dependency voice presence engine">
+<meta name="description" content="ANYORB — zero-dependency voice presence engine. One script tag, any stack.">
 <meta name="theme-color" content="#030508">
-<title>ANYORB</title>
+<title>ANYORB — Voice Presence Engine</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='12' fill='%235ce1ff'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #030508;
-  --fg: #e8eef8;
-  --muted: #7a8499;
-  --dim: #4a5366;
-  --line: rgba(140,170,255,.12);
-  --glass: rgba(12,16,28,.55);
-  --glass2: rgba(18,24,42,.7);
-  --accent: #5ce1ff;
-  --accent2: #7dffb3;
-  --c-idle: #5ce1ff;
-  --c-connect: #ffc14a;
-  --c-listen: #7dff7a;
-  --c-think: #c9a0ff;
-  --c-speak: #6b9bff;
-  --c-error: #ff6b8a;
-  --r: 999px;
+  --bg:#030508; --fg:#e8eef8; --muted:#8a93a8; --dim:#4a5366;
+  --line:rgba(140,170,255,.12); --glass:rgba(10,14,26,.6); --glass2:rgba(14,18,32,.82);
+  --accent:#5ce1ff; --c-idle:#5ce1ff; --c-connect:#ffc14a; --c-listen:#7dff7a;
+  --c-think:#c9a0ff; --c-speak:#6b9bff; --c-error:#ff6b8a;
 }
-* { margin:0; padding:0; box-sizing:border-box; }
-html, body { height:100%; background:var(--bg); color:var(--fg); font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased; overflow:hidden; }
-button { font:inherit; color:inherit; background:none; border:none; cursor:pointer; }
-:focus-visible { outline:1.5px solid var(--accent); outline-offset:3px; border-radius:8px; }
-#stage {
-  position:fixed; inset:0; z-index:0;
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 45%, rgba(30,50,90,.25), transparent 70%),
-    var(--bg);
-}
-#orbHost { position:absolute; inset:0; }
-#orbHost canvas { display:block; width:100%; height:100%; touch-action:none; cursor:grab; }
-#orbHost canvas:active { cursor:grabbing; }
-.top {
-  position:fixed; top:0; left:0; right:0; z-index:20;
-  display:flex; align-items:center; gap:20px;
-  padding:18px 28px;
-  pointer-events:none;
-}
-.top > * { pointer-events:auto; }
-.brand {
-  display:flex; align-items:center; gap:10px;
-  font-weight:500; font-size:14px; letter-spacing:.04em;
-}
-.brand .dot {
-  width:8px; height:8px; border-radius:50%;
-  background:var(--accent);
-  box-shadow:0 0 12px var(--accent);
-  animation:pulse 2.8s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%,100% { opacity:1; transform:scale(1); }
-  50% { opacity:.55; transform:scale(1.3); }
-}
-.brand span { opacity:.9; }
-.tagline {
-  font-size:11px; letter-spacing:.18em; text-transform:uppercase;
-  color:var(--dim); font-weight:400;
-}
-.spacer { flex:1; }
-.top-actions { display:flex; align-items:center; gap:8px; }
-.pill-btn {
-  display:inline-flex; align-items:center; gap:7px;
-  padding:8px 14px; border-radius:var(--r);
-  border:1px solid var(--line);
-  background:var(--glass);
-  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
-  font-size:12px; font-weight:500; color:var(--muted);
-  transition:all .2s cubic-bezier(.16,1,.3,1);
-}
-.pill-btn:hover {
-  color:var(--fg); border-color:rgba(140,170,255,.28);
-  background:var(--glass2);
-}
-.pill-btn.active {
-  color:var(--accent); border-color:color-mix(in srgb, var(--accent) 40%, transparent);
-  box-shadow:0 0 20px color-mix(in srgb, var(--accent) 15%, transparent);
-}
-.pill-btn.primary {
-  background:linear-gradient(135deg, #4a7bff, var(--accent));
-  border-color:transparent; color:#031018; font-weight:600;
-  box-shadow:0 4px 20px color-mix(in srgb, var(--accent) 30%, transparent);
-}
-.pill-btn.primary:hover { filter:brightness(1.08); }
-.icon-btn {
-  width:36px; height:36px; border-radius:50%;
-  border:1px solid var(--line); background:var(--glass);
-  backdrop-filter:blur(16px); display:grid; place-items:center;
-  color:var(--muted); transition:.2s;
-}
-.icon-btn:hover { color:var(--fg); border-color:rgba(140,170,255,.3); }
-.side {
-  position:fixed; left:28px; top:50%; transform:translateY(-50%);
-  z-index:15; max-width:280px;
-  pointer-events:none;
-}
-.side .eyebrow {
-  font-size:10px; letter-spacing:.22em; text-transform:uppercase;
-  color:var(--dim); margin-bottom:12px;
-  display:flex; align-items:center; gap:8px;
-}
-.side .eyebrow::before {
-  content:""; width:6px; height:6px; border-radius:50%;
-  background:var(--sc, var(--c-idle));
-  box-shadow:0 0 10px var(--sc, var(--c-idle));
-}
-.side h1 {
-  font-size:clamp(28px, 4vw, 42px); font-weight:300; line-height:1.15;
-  letter-spacing:-.02em; margin-bottom:14px;
-  color:var(--fg);
-}
-.side h1 em {
-  font-style:normal; font-weight:400;
-  color:var(--sc, var(--c-idle));
-  text-shadow:0 0 40px color-mix(in srgb, var(--sc, var(--c-idle)) 40%, transparent);
-  transition:color .5s, text-shadow .5s;
-}
-.side p {
-  font-size:13.5px; line-height:1.6; color:var(--muted);
-  font-weight:400; max-width:240px;
-}
-.side .meta {
-  margin-top:22px; font-family:'JetBrains Mono',monospace;
-  font-size:11px; color:var(--dim); letter-spacing:.04em;
-}
-.side .meta b { color:var(--muted); font-weight:500; }
-.dock {
-  position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
-  z-index:20;
-  display:flex; align-items:center; gap:10px;
-  padding:8px;
-  border-radius:999px;
-  border:1px solid var(--line);
-  background:var(--glass);
-  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
-  box-shadow:0 12px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(200,220,255,.06);
-}
-.state-switch {
-  display:flex; gap:2px; padding:2px;
-  border-radius:999px; background:rgba(0,0,0,.25);
-}
-.sbtn {
-  padding:10px 16px; border-radius:999px;
-  font-size:12px; font-weight:500; color:var(--muted);
-  transition:all .22s cubic-bezier(.16,1,.3,1);
-  white-space:nowrap;
-}
-.sbtn:hover { color:var(--fg); }
-.sbtn[aria-pressed="true"] {
-  color:#031018;
-  background:var(--sc, var(--accent));
-  box-shadow:0 0 18px color-mix(in srgb, var(--sc, var(--accent)) 35%, transparent);
-  font-weight:600;
-}
-.dock-sep {
-  width:1px; height:24px; background:var(--line); margin:0 4px;
-}
-.theme-row { display:flex; gap:6px; align-items:center; padding:0 4px; }
-.swatch {
-  width:22px; height:22px; border-radius:50%;
-  border:2px solid transparent;
-  background:radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--sw) 80%, #fff), var(--sw));
-  transition:transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s;
-  box-shadow:0 0 0 1px rgba(0,0,0,.3);
-}
-.swatch:hover { transform:scale(1.2); }
-.swatch[aria-pressed="true"] {
-  border-color:var(--fg);
-  box-shadow:0 0 12px var(--sw);
-}
-.dock-actions { display:flex; gap:4px; }
-.dock-actions .icon-btn { width:34px; height:34px; }
-.stats {
-  position:fixed; right:28px; bottom:28px; z-index:15;
-  font-family:'JetBrains Mono',monospace; font-size:11px;
-  color:var(--dim); text-align:right; line-height:1.7;
-  pointer-events:none;
-}
-.stats b { color:var(--muted); font-weight:500; }
-.vu-wrap {
-  position:fixed; left:28px; bottom:28px; z-index:15;
-  display:flex; align-items:center; gap:10px;
-  pointer-events:none;
-}
-.vu {
-  width:100px; height:3px; border-radius:99px;
-  background:rgba(120,140,255,.12); overflow:hidden;
-}
-.vu i {
-  display:block; height:100%; width:100%; transform-origin:left; transform:scaleX(0);
-  background:linear-gradient(90deg, var(--c-listen), var(--c-connect));
-  border-radius:99px; transition:transform .08s linear;
-}
-.vu-label { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--dim); letter-spacing:.12em; text-transform:uppercase; }
-#toasts {
-  position:fixed; top:80px; left:50%; transform:translateX(-50%);
-  z-index:50; display:flex; flex-direction:column; gap:8px; align-items:center;
-  pointer-events:none;
-}
-.toast {
-  padding:10px 18px; border-radius:999px;
-  background:var(--glass2); border:1px solid var(--line);
-  backdrop-filter:blur(16px); font-size:13px; font-weight:500;
-  box-shadow:0 8px 30px rgba(0,0,0,.4);
-  animation:toastIn .35s cubic-bezier(.16,1,.3,1);
-}
-@keyframes toastIn { from{opacity:0; transform:translateY(-10px)} to{opacity:1; transform:none} }
-dialog {
-  background:var(--glass2); border:1px solid var(--line);
-  border-radius:20px; color:var(--fg); padding:28px 32px;
-  max-width:400px; width:calc(100vw - 40px);
-  box-shadow:0 24px 80px rgba(0,0,0,.55);
-  backdrop-filter:blur(24px);
-}
-dialog::backdrop { background:rgba(2,4,10,.75); backdrop-filter:blur(6px); }
-dialog h2 { font-size:15px; font-weight:500; letter-spacing:.08em; margin-bottom:8px; color:var(--accent); }
-dialog p { font-size:13px; color:var(--muted); line-height:1.55; margin-bottom:18px; }
-.keys { display:grid; grid-template-columns:auto 1fr; gap:8px 16px; font-size:13px; }
-kbd {
-  font-family:'JetBrains Mono',monospace; font-size:11px;
-  padding:3px 8px; border-radius:6px; border:1px solid var(--line);
-  background:rgba(0,0,0,.3); color:var(--accent);
-}
-#closeHelp { margin-top:20px; width:100%; justify-content:center; }
-@media (max-width:720px) {
-  .side { display:none; }
-  .dock { bottom:16px; left:12px; right:12px; transform:none; width:auto; flex-wrap:wrap; justify-content:center; border-radius:20px; }
-  .state-switch { flex-wrap:wrap; justify-content:center; }
-  .sbtn { padding:8px 12px; font-size:11px; }
-  .stats, .vu-wrap { display:none; }
-  .top { padding:14px 16px; }
-  .tagline { display:none; }
-}
-@media (prefers-reduced-motion:reduce) {
-  .brand .dot { animation:none !important; }
-}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+:focus-visible{outline:1.5px solid var(--accent);outline-offset:3px;border-radius:8px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:99px;background:rgba(120,140,255,.15);cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--fg);border:2px solid var(--accent);box-shadow:0 0 10px color-mix(in srgb,var(--accent) 50%,transparent)}
+select{width:100%;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--glass);color:var(--fg);font:inherit;font-size:12.5px}
+#stage{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 80% 60% at 50% 42%,rgba(28,45,85,.28),transparent 70%),var(--bg)}
+#orbHost{position:absolute;inset:0}
+#orbHost canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#orbHost canvas:active{cursor:grabbing}
+.top{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:18px;padding:16px 24px;pointer-events:none}
+.top>*{pointer-events:auto}
+.brand{display:flex;align-items:center;gap:9px;font-weight:500;font-size:14px;letter-spacing:.03em}
+.brand .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:pulse 2.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.35)}}
+.tagline{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+.spacer{flex:1}
+.top-actions{display:flex;align-items:center;gap:7px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);font-size:12px;font-weight:500;color:var(--muted);transition:all .2s}
+.pill:hover{color:var(--fg);border-color:rgba(140,170,255,.3);background:var(--glass2)}
+.pill.primary{background:linear-gradient(135deg,#4a7bff,var(--accent));border-color:transparent;color:#031018;font-weight:600;box-shadow:0 4px 18px color-mix(in srgb,var(--accent) 28%,transparent)}
+.pill.primary:hover{filter:brightness(1.07)}
+.icon{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(16px);display:grid;place-items:center;color:var(--muted);transition:.2s;font-size:14px}
+.icon:hover,.icon.on{color:var(--fg);border-color:rgba(140,170,255,.35)}
+.icon.on{color:var(--accent);box-shadow:0 0 14px color-mix(in srgb,var(--accent) 20%,transparent)}
+.side{position:fixed;left:26px;top:50%;transform:translateY(-52%);z-index:15;max-width:300px;pointer-events:none;transition:opacity .4s}
+.side .eyebrow{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.side .eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--sc,var(--c-idle));box-shadow:0 0 10px var(--sc,var(--c-idle))}
+.side h1{font-size:clamp(26px,3.8vw,40px);font-weight:300;line-height:1.18;letter-spacing:-.025em;margin-bottom:12px}
+.side h1 em{font-style:normal;font-weight:400;color:var(--sc,var(--c-idle));text-shadow:0 0 36px color-mix(in srgb,var(--sc,var(--c-idle)) 38%,transparent);transition:color .45s,text-shadow .45s}
+.side p{font-size:13.5px;line-height:1.65;color:var(--muted);max-width:260px}
+.side .meta{margin-top:18px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim)}
+.side .meta b{color:var(--muted);font-weight:500}
+.dock{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:25;display:flex;align-items:center;gap:8px;padding:7px;border-radius:999px;border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);box-shadow:0 12px 40px rgba(0,0,0,.5),inset 0 1px 0 rgba(200,220,255,.05)}
+.state-switch{display:flex;gap:2px;padding:2px;border-radius:999px;background:rgba(0,0,0,.28)}
+.sbtn{padding:9px 14px;border-radius:999px;font-size:12px;font-weight:500;color:var(--muted);transition:all .2s;white-space:nowrap}
+.sbtn:hover{color:var(--fg)}
+.sbtn[aria-pressed="true"]{color:#031018;background:var(--sc,var(--accent));box-shadow:0 0 16px color-mix(in srgb,var(--sc,var(--accent)) 32%,transparent);font-weight:600}
+.sep{width:1px;height:22px;background:var(--line);margin:0 2px}
+.themes{display:flex;gap:5px;padding:0 4px}
+.swatch{width:20px;height:20px;border-radius:50%;border:2px solid transparent;background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--sw) 80%,#fff),var(--sw));transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s}
+.swatch:hover{transform:scale(1.2)}
+.swatch[aria-pressed="true"]{border-color:var(--fg);box-shadow:0 0 10px var(--sw)}
+.dock .icon{width:32px;height:32px}
+.panel{position:fixed;top:0;right:0;bottom:0;width:min(340px,92vw);z-index:40;background:var(--glass2);border-left:1px solid var(--line);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);transform:translateX(105%);transition:transform .4s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,.4)}
+.panel.open{transform:translateX(0)}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line)}
+.panel-head h2{font-size:13px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.panel-body{flex:1;overflow-y:auto;padding:16px 20px 28px;display:flex;flex-direction:column;gap:22px}
+.grp label{display:block;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+.ctl{display:grid;grid-template-columns:1fr 48px;align-items:center;gap:10px;margin-bottom:10px}
+.ctl span{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);text-align:right}
+.row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:13px;color:var(--muted)}
+.tgl{width:38px;height:22px;border-radius:99px;border:1px solid var(--line);background:rgba(0,0,0,.3);position:relative;transition:.2s;flex:none}
+.tgl::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--dim);transition:.2s}
+.tgl[aria-checked="true"]{background:color-mix(in srgb,var(--accent) 25%,transparent);border-color:var(--accent)}
+.tgl[aria-checked="true"]::after{left:19px;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.panel-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:8px}
+.panel-foot .pill{flex:1;justify-content:center}
+.vu-wrap{position:fixed;left:26px;bottom:24px;z-index:15;display:flex;align-items:center;gap:9px;pointer-events:none}
+.vu{width:90px;height:3px;border-radius:99px;background:rgba(120,140,255,.12);overflow:hidden}
+.vu i{display:block;height:100%;width:100%;transform-origin:left;transform:scaleX(0);background:linear-gradient(90deg,var(--c-listen),var(--c-connect));border-radius:99px}
+.vu-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+.stats{position:fixed;right:26px;bottom:24px;z-index:15;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim);text-align:right;line-height:1.7;pointer-events:none}
+.stats b{color:var(--muted);font-weight:500}
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(2,4,10,.78);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:24px}
+.overlay.open{display:flex}
+.card{background:var(--glass2);border:1px solid var(--line);border-radius:20px;max-width:520px;width:100%;padding:28px 30px;box-shadow:0 24px 80px rgba(0,0,0,.5);backdrop-filter:blur(24px);max-height:85vh;overflow-y:auto}
+.card h2{font-size:15px;font-weight:500;letter-spacing:.1em;color:var(--accent);margin-bottom:10px}
+.card p{font-size:13.5px;line-height:1.65;color:var(--muted);margin-bottom:12px}
+.card pre{background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.65;color:#b8c4e0;overflow-x:auto;margin:14px 0}
+.card .actions{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+dialog{background:var(--glass2);border:1px solid var(--line);border-radius:18px;color:var(--fg);padding:26px 28px;max-width:400px;width:calc(100vw - 40px);box-shadow:0 24px 80px rgba(0,0,0,.55);backdrop-filter:blur(24px)}
+dialog::backdrop{background:rgba(2,4,10,.75);backdrop-filter:blur(6px)}
+dialog h2{font-size:14px;font-weight:500;letter-spacing:.1em;margin-bottom:8px;color:var(--accent)}
+dialog p{font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:16px}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:13px}
+kbd{font-family:'JetBrains Mono',monospace;font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--accent)}
+@media(max-width:720px){.side{display:none}.dock{bottom:14px;left:10px;right:10px;transform:none;width:auto;flex-wrap:wrap;justify-content:center;border-radius:18px}.sbtn{padding:8px 11px;font-size:11px}.stats,.vu-wrap{display:none}.tagline{display:none}.panel{width:100%}}
+@media(prefers-reduced-motion:reduce){.brand .dot{animation:none!important}}
 </style>
 </head>
 <body>
-
-<div id="stage">
-  <div id="orbHost"></div>
-</div>
-
+<div id="stage"><div id="orbHost"></div></div>
 <header class="top">
   <div class="brand"><i class="dot"></i><span>anyorb</span></div>
   <div class="tagline">voice presence engine</div>
   <div class="spacer"></div>
   <div class="top-actions">
-    <button class="pill-btn" id="soundBtn" aria-pressed="true">Sound on</button>
-    <button class="pill-btn primary" id="runBtn">Run conversation</button>
-    <button class="pill-btn" id="downloadBtn">↓ Engine</button>
-    <button class="icon-btn" id="helpBtn" title="Help">?</button>
+    <button class="pill" id="soundBtn">Sound on</button>
+    <button class="pill primary" id="runBtn">Run conversation</button>
+    <button class="pill" id="aboutBtn">About</button>
+    <button class="icon" id="settingsBtn" title="Settings">⚙</button>
+    <button class="icon" id="helpBtn" title="Help">?</button>
   </div>
 </header>
-
-<aside class="side">
+<aside class="side" id="side">
   <div class="eyebrow" id="stateEyebrow">Idle</div>
   <h1>A presence<br>for <em id="stateTitle">voice</em>.</h1>
-  <p id="stateDesc">Zero dependencies. One script tag. Works where React components can’t.</p>
-  <div class="meta"><b id="pcount">1600</b> particles · <b id="fps">—</b> fps</div>
+  <p id="stateDesc">Zero dependencies. One script tag. Works where React components can’t — Webflow, Framer, WordPress, plain HTML.</p>
+  <div class="meta"><b id="pcount">2200</b> particles · <b id="fps">—</b> fps</div>
 </aside>
-
-<nav class="dock" aria-label="Controls">
+<nav class="dock">
   <div class="state-switch" id="stateBtns">
     <button class="sbtn" data-state="idle" style="--sc:var(--c-idle)" aria-pressed="true">Idle</button>
     <button class="sbtn" data-state="connecting" style="--sc:var(--c-connect)">Connect</button>
@@ -279,201 +127,123 @@ kbd {
     <button class="sbtn" data-state="speaking" style="--sc:var(--c-speak)">Speak</button>
     <button class="sbtn" data-state="error" style="--sc:var(--c-error)">Error</button>
   </div>
-  <div class="dock-sep"></div>
-  <div class="theme-row" id="themes">
+  <div class="sep"></div>
+  <div class="themes" id="themes">
     <button class="swatch" data-theme="glacier" style="--sw:#5ce1ff" aria-pressed="true" title="Glacier"></button>
     <button class="swatch" data-theme="nova" style="--sw:#ff5ae0" title="Nova"></button>
     <button class="swatch" data-theme="acid" style="--sw:#7dff7a" title="Acid"></button>
     <button class="swatch" data-theme="ember" style="--sw:#ffc14a" title="Ember"></button>
     <button class="swatch" data-theme="rose" style="--sw:#ff8fb8" title="Rose"></button>
   </div>
-  <div class="dock-sep"></div>
-  <div class="dock-actions">
-    <button class="icon-btn" id="randBtn" title="Randomize (R)">🎲</button>
-    <button class="icon-btn" id="resetBtn" title="Reset">↺</button>
-  </div>
+  <div class="sep"></div>
+  <button class="icon" id="randBtn" title="Randomize (R)">🎲</button>
+  <button class="icon" id="resetBtn" title="Reset">↺</button>
 </nav>
-
-<div class="vu-wrap">
-  <div class="vu"><i id="vuFill"></i></div>
-  <span class="vu-label">level</span>
+<div class="vu-wrap"><div class="vu"><i id="vuFill"></i></div><span class="vu-label">level</span></div>
+<div class="stats"><div><b id="stateName">idle</b></div><div>drag · scroll · click</div></div>
+<aside class="panel" id="settingsPanel" aria-hidden="true">
+  <div class="panel-head"><h2>Settings</h2><button class="icon" id="closeSettings" title="Close">✕</button></div>
+  <div class="panel-body">
+    <div class="grp"><label>Form & motion</label>
+      <div class="ctl"><input type="range" data-param="particles" min="600" max="4000" step="100" value="2200"><span data-out="particles">2200</span></div>
+      <div class="ctl"><input type="range" data-param="scale" min="50" max="150" value="100"><span data-out="scale">1.00×</span></div>
+      <div class="ctl"><input type="range" data-param="speed" min="0" max="200" value="70"><span data-out="speed">0.70×</span></div>
+      <div class="ctl"><input type="range" data-param="turbulence" min="0" max="100" value="18"><span data-out="turbulence">18%</span></div>
+      <div class="ctl"><input type="range" data-param="spin" min="0" max="200" value="50"><span data-out="spin">0.50×</span></div>
+    </div>
+    <div class="grp"><label>Light & texture</label>
+      <div class="ctl"><input type="range" data-param="glow" min="0" max="100" value="70"><span data-out="glow">70%</span></div>
+      <div class="ctl"><input type="range" data-param="trails" min="0" max="80" value="25"><span data-out="trails">25%</span></div>
+      <div class="ctl"><input type="range" data-param="psize" min="50" max="180" value="100"><span data-out="psize">1.00×</span></div>
+    </div>
+    <div class="grp"><label>Behavior</label>
+      <div class="row"><span>Animate</span><button class="tgl" id="animTgl" role="switch" aria-checked="true"></button></div>
+      <div class="row"><span>Pointer gravity</span><button class="tgl" id="gravTgl" role="switch" aria-checked="true"></button></div>
+      <div class="row"><span>Constellation links</span><button class="tgl" id="linksTgl" role="switch" aria-checked="true"></button></div>
+      <div class="row"><span>State tint</span><button class="tgl" id="tintTgl" role="switch" aria-checked="true"></button></div>
+    </div>
+    <div class="grp"><label>Quality</label>
+      <select id="qualitySelect"><option value="eco">Eco · 1×</option><option value="balanced" selected>Balanced · 1.5×</option><option value="sharp">Sharp · 2×</option></select>
+    </div>
+  </div>
+  <div class="panel-foot">
+    <button class="pill" id="exportBtn">Export PNG</button>
+    <button class="pill primary" id="copyCfgBtn">Copy config</button>
+  </div>
+</aside>
+<div class="overlay" id="aboutOverlay">
+  <div class="card">
+    <h2>ANYORB</h2>
+    <p>A zero-dependency voice presence engine. Six agent states, audio-reactive particles, one file. Built for places React components can’t reach — Webflow, Framer, WordPress, Vue, Svelte, plain HTML.</p>
+    <p>Drop the script, add the element, connect any <code style="color:var(--accent)">AnalyserNode</code>. That’s the whole integration.</p>
+    <pre id="embedCode"><script src="anyorb.js"></script>
+<voice-orb state="idle" theme="glacier"
+  style="width:240px;height:240px">
+</voice-orb></pre>
+    <p style="font-size:12.5px;color:var(--dim)">MIT · ~15 KB · works offline · no build step</p>
+    <div class="actions">
+      <button class="pill primary" id="dlEngine">↓ Download anyorb.js</button>
+      <button class="pill" id="copyEmbed">Copy snippet</button>
+      <button class="pill" id="closeAbout">Close</button>
+    </div>
+  </div>
 </div>
-<div class="stats">
-  <div><b id="stateName">idle</b></div>
-  <div>drag · scroll · click</div>
-</div>
-
-<div id="toasts"></div>
-
 <dialog id="helpDialog">
-  <h2>ANYORB</h2>
-  <p>Zero-dependency voice presence engine. Six agent states, audio-reactive particles. One file — embed anywhere.</p>
+  <h2>Shortcuts</h2>
+  <p>Everything is live. No build, no framework.</p>
   <div class="keys">
-    <kbd>1–6</kbd><span>Switch state</span>
-    <kbd>Space</kbd><span>Run conversation</span>
+    <kbd>1–6</kbd><span>States</span>
+    <kbd>Space</kbd><span>Conversation</span>
     <kbd>R</kbd><span>Randomize</span>
     <kbd>S</kbd><span>Sound</span>
+    <kbd>,</kbd><span>Settings</span>
     <kbd>?</kbd><span>Help</span>
   </div>
-  <button class="pill-btn primary" id="closeHelp" style="width:100%;margin-top:20px;justify-content:center">Close</button>
+  <button class="pill primary" id="closeHelp" style="width:100%;margin-top:18px;justify-content:center">Close</button>
 </dialog>
-
 <script src="anyorb.js"></script>
 <script>
-(() => {
-  const $ = id => document.getElementById(id);
-  const DESC = {
-    idle: "Breathing. Waiting. Ready for the next signal.",
-    connecting: "Particles collapsing into form — the link is forming.",
-    listening: "Pulling sound from the air. Reacting to every breath.",
-    thinking: "Orbiting the idea. Processing in quiet rotation.",
-    speaking: "Wave surface driven by the agent’s voice.",
-    error: "Signal broken. A brief scatter, then recovery."
-  };
-  const TITLE = {
-    idle: "voice", connecting: "link", listening: "sound",
-    thinking: "thought", speaking: "speech", error: "noise"
-  };
-  const C = {
-    idle:"var(--c-idle)", connecting:"var(--c-connect)", listening:"var(--c-listen)",
-    thinking:"var(--c-think)", speaking:"var(--c-speak)", error:"var(--c-error)"
-  };
-
-  let tick = 0, muted = false, audioCtx = null;
-
-  function ensureAudio() {
-    if (audioCtx) return;
-    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
-  }
-  function chime(state) {
-    if (muted || !audioCtx) return;
-    const freq = {idle:392,connecting:330,listening:523,thinking:294,speaking:440,error:196}[state] || 392;
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = "sine"; o.frequency.value = freq;
-    g.gain.setValueAtTime(0, audioCtx.currentTime);
-    g.gain.linearRampToValueAtTime(0.05, audioCtx.currentTime + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.8);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(); o.stop(audioCtx.currentTime + 0.9);
-  }
-
-  const orb = new AnyOrb($("orbHost"), {
-    state: "connecting",
-    particles: 2200,
-    theme: "glacier",
-    onFrame: o => {
-      $("vuFill").style.transform = "scaleX(" + o.smoothLevel.toFixed(3) + ")";
-      if (o.state === "listening" || o.state === "speaking") {
-        const t = o.time;
-        o.setLevel(o.state === "listening"
-          ? Math.max(0, Math.sin(t * 1.9) * 0.45 + 0.35)
-          : 0.35 + 0.35 * Math.sin(t * 7.5));
-      }
-      if (++tick % 12 === 0) $("fps").textContent = Math.round(o.fps);
-    }
-  });
-
-  function sync(s) {
-    document.querySelectorAll("#stateBtns .sbtn").forEach(b =>
-      b.setAttribute("aria-pressed", String(b.dataset.state === s)));
-    $("stateName").textContent = s;
-    $("stateEyebrow").textContent = s;
-    $("stateTitle").textContent = TITLE[s] || s;
-    $("stateDesc").textContent = DESC[s] || "";
-    document.documentElement.style.setProperty("--sc", C[s]);
-    $("stateEyebrow").style.setProperty("--sc", C[s]);
-    $("stateTitle").style.setProperty("--sc", C[s]);
-    chime(s);
-  }
-
-  $("orbHost").addEventListener("anyorb:statechange", e => sync(e.detail.state));
-
-  document.querySelectorAll("#stateBtns .sbtn").forEach(b => {
-    b.onclick = () => { ensureAudio(); orb.setState(b.dataset.state); };
-  });
-
-  document.querySelectorAll("#themes .swatch").forEach(s => {
-    s.onclick = () => {
-      document.querySelectorAll("#themes .swatch").forEach(x => x.setAttribute("aria-pressed", "false"));
-      s.setAttribute("aria-pressed", "true");
-      orb.set("theme", s.dataset.theme);
-      document.documentElement.style.setProperty("--accent", AnyOrb.THEMES[s.dataset.theme].core);
-    };
-  });
-
-  $("resetBtn").onclick = () => {
-    orb.setState("idle");
-    orb.set("theme", "glacier");
-    document.querySelectorAll("#themes .swatch").forEach(x =>
-      x.setAttribute("aria-pressed", String(x.dataset.theme === "glacier")));
-  };
-  $("randBtn").onclick = () => {
-    const th = Object.keys(AnyOrb.THEMES);
-    const t = th[Math.random() * th.length | 0];
-    document.querySelectorAll("#themes .swatch").forEach(x =>
-      x.setAttribute("aria-pressed", String(x.dataset.theme === t)));
-    orb.set("theme", t);
-    orb.setState(["idle","listening","thinking","speaking"][Math.random() * 4 | 0]);
-  };
-
-  $("downloadBtn").onclick = () => {
-    const a = document.createElement("a");
-    a.href = "anyorb.js"; a.download = "anyorb.js"; a.click();
-  };
-  $("soundBtn").onclick = () => {
-    ensureAudio();
-    muted = !muted;
-    $("soundBtn").textContent = muted ? "Sound off" : "Sound on";
-    $("soundBtn").setAttribute("aria-pressed", String(!muted));
-    $("soundBtn").classList.toggle("active", !muted);
-  };
-
-  const SCRIPT = [
-    {s:"connecting", d:1.1},
-    {s:"listening", d:2.0},
-    {s:"thinking", d:1.4},
-    {s:"speaking", d:3.0},
-    {s:"idle", d:0.5}
-  ];
-  let timers = [], running = false;
-  function stopRun() {
-    running = false;
-    timers.forEach(clearTimeout);
-    timers = [];
-    $("runBtn").textContent = "Run conversation";
-  }
-  $("runBtn").onclick = () => {
-    if (running) { stopRun(); return; }
-    ensureAudio();
-    running = true;
-    $("runBtn").textContent = "■ Stop";
-    let delay = 0;
-    SCRIPT.forEach(step => {
-      timers.push(setTimeout(() => {
-        if (!running) return;
-        orb.setState(step.s);
-      }, delay * 1000));
-      delay += step.d;
-    });
-    timers.push(setTimeout(stopRun, delay * 1000 + 100));
-  };
-
-  const dlg = $("helpDialog");
-  $("helpBtn").onclick = () => dlg.showModal && dlg.showModal();
-  $("closeHelp").onclick = () => dlg.close();
-
-  document.addEventListener("keydown", e => {
-    if (["INPUT","TEXTAREA"].includes(document.activeElement?.tagName)) return;
-    if (e.key >= "1" && e.key <= "6") { ensureAudio(); orb.setState(AnyOrb.STATES[+e.key - 1]); }
-    if (e.code === "Space") { e.preventDefault(); $("runBtn").click(); }
-    if (e.key.toLowerCase() === "r") $("randBtn").click();
-    if (e.key.toLowerCase() === "s") $("soundBtn").click();
-    if (e.key === "?") dlg.showModal && dlg.showModal();
-  });
-  document.addEventListener("pointerdown", ensureAudio, { once: true });
-
-  $("pcount").textContent = "2200";
-  setTimeout(() => orb.setState("idle"), 1400);
+(()=>{
+  const $=id=>document.getElementById(id);
+  const DESC={idle:"Breathing. Waiting. Ready for the next signal.",connecting:"Particles collapsing into form — the link is forming.",listening:"Pulling sound from the air. Reacting to every breath.",thinking:"Orbiting the idea. Processing in quiet rotation.",speaking:"Wave surface driven by the agent’s voice.",error:"Signal broken. A brief scatter, then recovery."};
+  const TITLE={idle:"voice",connecting:"link",listening:"sound",thinking:"thought",speaking:"speech",error:"noise"};
+  const C={idle:"var(--c-idle)",connecting:"var(--c-connect)",listening:"var(--c-listen)",thinking:"var(--c-think)",speaking:"var(--c-speak)",error:"var(--c-error)"};
+  let tick=0,muted=false,audioCtx=null;
+  function ensureAudio(){if(audioCtx)return;try{audioCtx=new(window.AudioContext||window.webkitAudioContext)}catch(e){}}
+  function chime(state){if(muted||!audioCtx)return;const freq={idle:392,connecting:330,listening:523,thinking:294,speaking:440,error:196}[state]||392;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type="sine";o.frequency.value=freq;g.gain.setValueAtTime(0,audioCtx.currentTime);g.gain.linearRampToValueAtTime(.05,audioCtx.currentTime+.02);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.8);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+.9)}
+  function toast(msg){let box=document.getElementById("toasts");if(!box){box=document.createElement("div");box.id="toasts";box.style.cssText="position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none";document.body.appendChild(box)}const t=document.createElement("div");t.style.cssText="padding:10px 18px;border-radius:999px;background:rgba(14,18,32,.9);border:1px solid rgba(140,170,255,.15);backdrop-filter:blur(16px);font-size:13px;font-weight:500;box-shadow:0 8px 30px rgba(0,0,0,.4)";t.textContent=msg;box.appendChild(t);setTimeout(()=>t.remove(),2200)}
+  const orb=new AnyOrb($("orbHost"),{state:"connecting",particles:2200,theme:"glacier",onFrame:o=>{$("vuFill").style.transform="scaleX("+o.smoothLevel.toFixed(3)+")";if(o.state==="listening"||o.state==="speaking"){const t=o.time;o.setLevel(o.state==="listening"?Math.max(0,Math.sin(t*1.9)*.45+.35):.35+.35*Math.sin(t*7.5))}if(++tick%12===0)$("fps").textContent=Math.round(o.fps)}});
+  function sync(s){document.querySelectorAll("#stateBtns .sbtn").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.state===s)));$("stateName").textContent=s;$("stateEyebrow").textContent=s;$("stateTitle").textContent=TITLE[s]||s;$("stateDesc").textContent=DESC[s]||"";document.documentElement.style.setProperty("--sc",C[s]);$("stateEyebrow").style.setProperty("--sc",C[s]);$("stateTitle").style.setProperty("--sc",C[s]);chime(s)}
+  $("orbHost").addEventListener("anyorb:statechange",e=>sync(e.detail.state));
+  document.querySelectorAll("#stateBtns .sbtn").forEach(b=>b.onclick=()=>{ensureAudio();orb.setState(b.dataset.state)});
+  document.querySelectorAll("#themes .swatch").forEach(s=>s.onclick=()=>{document.querySelectorAll("#themes .swatch").forEach(x=>x.setAttribute("aria-pressed","false"));s.setAttribute("aria-pressed","true");orb.set("theme",s.dataset.theme);document.documentElement.style.setProperty("--accent",AnyOrb.THEMES[s.dataset.theme].core)});
+  $("resetBtn").onclick=()=>{orb.setState("idle");orb.set("theme","glacier");document.querySelectorAll("#themes .swatch").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.theme==="glacier")))};
+  $("randBtn").onclick=()=>{const th=Object.keys(AnyOrb.THEMES),t=th[Math.random()*th.length|0];document.querySelectorAll("#themes .swatch").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.theme===t)));orb.set("theme",t);orb.setState(["idle","listening","thinking","speaking"][Math.random()*4|0])};
+  const panel=$("settingsPanel");
+  function openSettings(open){panel.classList.toggle("open",open);panel.setAttribute("aria-hidden",String(!open));$("settingsBtn").classList.toggle("on",open)}
+  $("settingsBtn").onclick=()=>openSettings(!panel.classList.contains("open"));
+  $("closeSettings").onclick=()=>openSettings(false);
+  document.querySelectorAll("[data-param]").forEach(input=>{const key=input.dataset.param;const out=document.querySelector(`[data-out="${key}"]`);const fmt=v=>{if(key==="particles")return v;if(["scale","speed","spin","psize"].includes(key))return(v/100).toFixed(2)+"×";return v+"%"};input.oninput=()=>{const v=+input.value;if(out)out.textContent=fmt(v);if(key==="particles"){orb.set("particles",v);$("pcount").textContent=v}else if(key==="scale")orb.set("scale",v/100);else if(key==="speed")orb.set("speed",v/100);else if(key==="turbulence")orb.set("turbulence",v/100);else if(key==="spin")orb.set("spin",v/100);else if(key==="glow")orb.set("glow",v/100);else if(key==="trails")orb.set("trails",v/100);else if(key==="psize")orb.set("pointSize",v/100)}});
+  function wireTgl(id,onChange){const el=$(id);el.onclick=()=>{const next=el.getAttribute("aria-checked")!=="true";el.setAttribute("aria-checked",String(next));onChange(next)}}
+  wireTgl("animTgl",v=>orb.set("animate",v));wireTgl("gravTgl",v=>orb.set("pointerGravity",v));wireTgl("linksTgl",v=>orb.set("links",v));wireTgl("tintTgl",v=>orb.set("stateTint",v));
+  $("qualitySelect").onchange=e=>{const map={eco:1,balanced:1.5,sharp:2};orb.set("dpr",map[e.target.value]||1.5)};
+  $("exportBtn").onclick=()=>{try{const c=$("orbHost").querySelector("canvas");if(!c)return;const a=document.createElement("a");a.href=c.toDataURL("image/png");a.download="anyorb.png";a.click();toast("PNG exported")}catch(e){toast("Export failed")}};
+  $("copyCfgBtn").onclick=()=>{const cfg={state:orb.state,theme:orb.theme||"glacier",particles:orb.particles};navigator.clipboard.writeText(JSON.stringify(cfg,null,2)).then(()=>toast("Config copied"))};
+  $("aboutBtn").onclick=()=>$("aboutOverlay").classList.add("open");
+  $("closeAbout").onclick=()=>$("aboutOverlay").classList.remove("open");
+  $("aboutOverlay").onclick=e=>{if(e.target===$("aboutOverlay"))$("aboutOverlay").classList.remove("open")};
+  $("dlEngine").onclick=()=>{const a=document.createElement("a");a.href="anyorb.js";a.download="anyorb.js";a.click()};
+  $("copyEmbed").onclick=()=>navigator.clipboard.writeText($("embedCode").textContent).then(()=>toast("Snippet copied"));
+  $("soundBtn").onclick=()=>{ensureAudio();muted=!muted;$("soundBtn").textContent=muted?"Sound off":"Sound on"};
+  const SCRIPT=[{s:"connecting",d:1.1},{s:"listening",d:2},{s:"thinking",d:1.4},{s:"speaking",d:3},{s:"idle",d:.5}];
+  let timers=[],running=false;
+  function stopRun(){running=false;timers.forEach(clearTimeout);timers=[];$("runBtn").textContent="Run conversation"}
+  $("runBtn").onclick=()=>{if(running){stopRun();return}ensureAudio();running=true;$("runBtn").textContent="■ Stop";let d=0;SCRIPT.forEach(step=>{timers.push(setTimeout(()=>{if(running)orb.setState(step.s)},d*1000));d+=step.d});timers.push(setTimeout(stopRun,d*1000+100))};
+  const dlg=$("helpDialog");$("helpBtn").onclick=()=>dlg.showModal&&dlg.showModal();$("closeHelp").onclick=()=>dlg.close();
+  document.addEventListener("keydown",e=>{if(["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName))return;if(e.key>="1"&&e.key<="6"){ensureAudio();orb.setState(AnyOrb.STATES[+e.key-1])}if(e.code==="Space"){e.preventDefault();$("runBtn").click()}if(e.key.toLowerCase()==="r")$("randBtn").click();if(e.key.toLowerCase()==="s")$("soundBtn").click();if(e.key===",")openSettings(!panel.classList.contains("open"));if(e.key==="?")dlg.showModal&&dlg.showModal();if(e.key==="Escape"){openSettings(false);$("aboutOverlay").classList.remove("open")}});
+  document.addEventListener("pointerdown",ensureAudio,{once:true});
+  $("pcount").textContent="2200";
+  setTimeout(()=>orb.setState("idle"),1300);
 })();
 </script>
 </body>
